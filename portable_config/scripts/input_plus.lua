@@ -29,8 +29,7 @@
  <KEY>   script-binding input_plus/ostime_toggle       # 启用/禁用显示系统时间
 
  <KEY>   script-binding input_plus/pip_dummy           # 画中画（伪）/小窗化
- <KEY>   script-binding input_plus/pip_dummy_p05       # ...（5%的尺寸占比）
- <KEY>   script-binding input_plus/pip_dummy_p20       # ...（20%...）
+ <KEY>   script-message-to input_plus pip_dummy_pct 40   # ...（支持自定义数值）
 
  <KEY>   script-binding input_plus/playlist_order_0    # 播放列表的洗牌与撤销
  <KEY>   script-binding input_plus/playlist_order_0r   # ...（重定向至首个文件）
@@ -55,8 +54,7 @@
  <KEY>   script-binding input_plus/speed_recover       # 仿Pot的速度重置与恢复
  <KEY>   script-binding input_plus/speed_sync_toggle   # 启用/禁用自适应速度偏移（补偿显示刷新率）
 
- <KEY>   script-binding input_plus/stats_1_2           # 循环浏览统计数据第1至2页
- <KEY>   script-binding input_plus/stats_0_5           # 循环浏览统计数据第0至5页
+ <KEY>   script-message-to input_plus cycle-stats 1 2   # 循环浏览统计数据第1至2页（页数可自定义）
 
  <KEY>   script-binding input_plus/trackA_back         # 上一个音频轨道（自动跳过无轨道）
  <KEY>   script-binding input_plus/trackA_next         # 下...
@@ -843,14 +841,20 @@ end
 
 
 function stats_cycle(num_init, num_end)
-	if show_page < num_init then
-		show_page = num_init - 1
+	if num_init < 0 or num_init > 5 then
+		num_init = 1
 	end
-	if show_page >= num_end then
+	if num_end < num_init then
+		num_end = num_init
+	end
+	if num_end > 5 then
+		num_end = 5
+	end
+	if show_page + 1 > num_end then
 		show_page = num_init - 1
 	end
 	show_page = show_page + 1
-	mp.command("script-binding display-page-" .. show_page)
+	mp.commandv("script-binding", "display-page-" .. show_page)
 end
 
 
@@ -902,10 +906,14 @@ end
 -- 键位绑定
 --
 
-mp.add_key_binding(nil, "adevice_back", function() adevicelist = mp.get_property_native("audio-device-list") adevicelist_fin(#adevicelist, 1, -1) end)
-mp.add_key_binding(nil, "adevice_next", function() adevicelist = mp.get_property_native("audio-device-list") adevicelist_fin(1, #adevicelist, 1) end)
-mp.add_key_binding(nil, "adevice_all_back", function() adevicelist = mp.get_property_native("audio-device-list") adevicelist_fin(#adevicelist, 1, -1, true) end)
-mp.add_key_binding(nil, "adevice_all_next", function() adevicelist = mp.get_property_native("audio-device-list") adevicelist_fin(1, #adevicelist, 1, true) end)
+mp.add_key_binding(nil, "adevice_back", function()
+	adevicelist = mp.get_property_native("audio-device-list") adevicelist_fin(#adevicelist, 1, -1) end)
+mp.add_key_binding(nil, "adevice_next", function()
+	adevicelist = mp.get_property_native("audio-device-list") adevicelist_fin(1, #adevicelist, 1) end)
+mp.add_key_binding(nil, "adevice_all_back", function()
+	adevicelist = mp.get_property_native("audio-device-list") adevicelist_fin(#adevicelist, 1, -1, true) end)
+mp.add_key_binding(nil, "adevice_all_next", function()
+	adevicelist = mp.get_property_native("audio-device-list") adevicelist_fin(1, #adevicelist, 1, true) end)
 
 mp.add_key_binding(nil, "chap_skip_toggle", chap_skip_toggle)
 
@@ -925,9 +933,9 @@ mp.add_key_binding(nil, "mark_aid_fin", mark_aid_fin)
 mp.add_key_binding(nil, "ostime_display", ostime_display)
 mp.add_key_binding(nil, "ostime_toggle", ostime_toggle)
 
-mp.add_key_binding(nil, "pip_dummy", function() pip_dummy(10) end)
-mp.add_key_binding(nil, "pip_dummy_p05", function() pip_dummy(5) end)
-mp.add_key_binding(nil, "pip_dummy_p20", function() pip_dummy(20) end)
+mp.add_key_binding(nil, "pip_dummy", function() pip_dummy(20) end)
+mp.register_script_message("pip_dummy_pct", function(pct)
+	pip_dummy(tonumber(pct)) end)
 
 mp.add_key_binding(nil, "playlist_order_0", function() playlist_order(0) end)
 mp.add_key_binding(nil, "playlist_order_0r", function() playlist_order(0, true) end)
@@ -952,8 +960,8 @@ mp.add_key_binding(nil, "speed_auto_bullet", speed_auto_bullet, {complex = true}
 mp.add_key_binding(nil, "speed_recover", speed_recover)
 mp.add_key_binding(nil, "speed_sync_toggle", speed_sync_toggle)
 
-mp.add_key_binding(nil, "stats_1_2", function() stats_cycle(1, 2) end)
-mp.add_key_binding(nil, "stats_0_5", function() stats_cycle(0, 5) end)
+mp.register_script_message("cycle-stats", function(pg_init, pg_end)
+	stats_cycle(tonumber(pg_init), tonumber(pg_end)) end)
 
 mp.add_key_binding(nil, "trackA_back", function() track_seek("aid", -1) end)
 mp.add_key_binding(nil, "trackA_next", function() track_seek("aid", 1) end)
@@ -968,6 +976,5 @@ mp.add_key_binding(nil, "trackV_refresh", function() track_refresh("vid") end)
 
 mp.add_key_binding(nil, "volume_db_dec", function() volume_add(-1) end, {repeatable = true})
 mp.add_key_binding(nil, "volume_db_inc", function() volume_add(1) end, {repeatable = true})
-
 
 mp.register_script_message("cycle-cmds", cycle_cmds)
